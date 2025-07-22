@@ -56,7 +56,7 @@ ChecksConfig = collections.namedtuple(
 
 MonitoringConfig = collections.namedtuple(
     'MonitoringConfig',
-    ['monitoring_provider', 'send_backup_name_tag']
+    ['monitoring_provider', 'send_backup_name_tag', 'newrelic_license_key', 'newrelic_events_url']
 )
 
 MedusaConfig = collections.namedtuple(
