@@ -25,8 +25,8 @@ class NewRelicMonitoring(AbstractMonitoring):
 
     def __init__(self, config):
         super().__init__(config)
-        self.license_key = config.monitoring.newrelic_license_key
-        self.events_url = config.monitoring.newrelic_events_url
+        self.license_key = self.config.newrelic_license_key
+        self.events_url = self.config.newrelic_events_url
 
         if not self.license_key:
             raise ValueError("newrelic_license_key is required for New Relic monitoring")
@@ -48,7 +48,7 @@ class NewRelicMonitoring(AbstractMonitoring):
 
         # The backup_name would be a rather high cardinality metrics series if backups are at all frequent.
         # This could be an expensive metric so backup_name is dropped from the tags sent by default
-        if medusa.utils.evaluate_boolean(self.config.monitoring.send_backup_name_tag):
+        if medusa.utils.evaluate_boolean(self.config.send_backup_name_tag):
             event["backup_name"] = backup_name
 
         self._send_event([event])
