@@ -40,16 +40,14 @@ class MedusaTempFile(object):
             pass
 
     def exists(self):
-        if self._tempfile is not None:
-            try:
-                return pathlib.Path(self._tempfile_path).exists()
-            except Exception:
-                logging.warning(
-                    f'Could not check for running backup marker {self._tempfile_path}. Assuming a backup is not running'
-                )
-                return False
-        else:
+        try:
+            return pathlib.Path(self._tempfile_path).exists()
+        except Exception:
+            logging.warning(
+                f'Could not check for running backup marker {self._tempfile_path}. Assuming a backup is not running'
+            )
             return False
+
 
     def get_path(self):
         return self._tempfile_path
