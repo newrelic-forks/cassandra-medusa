@@ -24,7 +24,7 @@ from datetime import datetime, timedelta, timezone
 class MedusaTempFile(object):
 
     def __init__(self, max_backup_marker_age):
-        self._max_backup_marker_age = max_backup_marker_age
+        self._max_backup_marker_age = float(max_backup_marker_age)
         self._tempfile = None
         self._tempfile_path = f'{tempfile.gettempdir()}/medusa_backup_in_progress'
 
