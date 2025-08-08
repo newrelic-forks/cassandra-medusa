@@ -1806,7 +1806,7 @@ def _backup_has_server_type_and_release_version(context, backup_name, server_typ
 
 @then(u'I can tell a backup "{is_in_progress}" in progress')
 def _backup_is_or_is_not_in_progress(context, is_in_progress):
-    marker_file_path = MedusaTempFile().get_path()
+    marker_file_path = MedusaTempFile(context.medusa_config.checks.max_backup_marker_age).get_path()
     if 'is' == is_in_progress:
         assert Path(marker_file_path).exists()
     if 'is not' == is_in_progress:
