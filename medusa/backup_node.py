@@ -83,7 +83,7 @@ def handle_backup(config, backup_name_arg, stagger_time, enable_md5_checks_flag,
 
     # externalise the fact a backup is running.
     # we need a way to tell a backup is running without invoking Meudsa to prevent concurrency and abrupt termination
-    backup_in_progress_marker = medusa.utils.MedusaTempFile()
+    backup_in_progress_marker = medusa.utils.MedusaTempFile(config.checks.max_backup_marker_age)
     if backup_in_progress_marker.exists():
         marker_path = backup_in_progress_marker.get_path()
         raise IOError(
