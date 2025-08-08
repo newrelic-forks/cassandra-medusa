@@ -18,12 +18,21 @@ import sys
 import pathlib
 import traceback
 import tempfile
+from datetime import datetime, timedelta, timezone
 
 
 class MedusaTempFile(object):
 
     _tempfile = None
     _tempfile_path = f'{tempfile.gettempdir()}/medusa_backup_in_progress'
+
+    def _is_stale(self):
+        try:
+            path = pathlib.Path(self._tempfile_path)
+            file_time = datetime.fromtimestamp(path.stat().st_mtime, timezone.utc)
+            return datetime.now(timezone.utc) - file_time > timedelta(hours=48)
+        except Exception:
+            return False
 
     def create(self):
         try:
@@ -33,7 +42,7 @@ class MedusaTempFile(object):
 
     def delete(self):
         try:
-            if self._tempfile is not None:
+            if self.exists():
                 self._tempfile.close()
                 pathlib.Path(self._tempfile_path).unlink()
         except Exception:
@@ -41,13 +50,19 @@ class MedusaTempFile(object):
 
     def exists(self):
         try:
-            return pathlib.Path(self._tempfile_path).exists()
+            path = pathlib.Path(self._tempfile_path)
+            if not path.exists():
+                return False
+            if self._is_stale():
+                logging.warning('Deleting and ignoring stale backup marker')
+                self.delete()
+                return False
+            return True
         except Exception:
             logging.warning(
                 f'Could not check for running backup marker {self._tempfile_path}. Assuming a backup is not running'
             )
             return False
-
 
     def get_path(self):
         return self._tempfile_path
