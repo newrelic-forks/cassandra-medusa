@@ -29,11 +29,14 @@ class MedusaTempFile(object):
         self._tempfile_path = f'{tempfile.gettempdir()}/medusa_backup_in_progress'
 
     def _is_stale(self):
+        logging.debug(f'max_backup_marker_age: {self._max_backup_marker_age}')
         try:
             path = pathlib.Path(self._tempfile_path)
             file_time = datetime.fromtimestamp(path.stat().st_mtime, timezone.utc)
+            logging.debug(f'marker file creation time: {file_time}')
             return datetime.now(timezone.utc) - file_time > timedelta(hours=self._max_backup_marker_age)
-        except Exception:
+        except Exception as e:
+            logging.debug('exception checking for stale marker file: {}'.format(str(e)))
             return False
 
     def create(self):
