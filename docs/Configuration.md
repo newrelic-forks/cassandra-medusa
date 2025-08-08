@@ -144,6 +144,7 @@ backup_grace_period_in_days = 10
 ;expected_rows = <Number of rows expected to be returned when the query runs. Not checked if not specified.>
 ;expected_result = <Coma separated string representation of values returned by the query. Checks only 1st row returned, and only if specified>
 ;enable_md5_checks = <During backups and verify, use md5 calculations to determine file integrity (in addition to size, which is used by default)>
+;max_backup_marker_age = <Age in hours at which medusa considers a node's medusa_backup_in_progress marker file to be stale. If the marker file is stale, it will be deleted, and a new backup will be allowed to start. Defaults to 48 hours.>
 
 [logging]
 ; Controls file logging, disabled by default.
