@@ -18,12 +18,26 @@ import sys
 import pathlib
 import traceback
 import tempfile
+from datetime import datetime, timedelta, timezone
 
 
 class MedusaTempFile(object):
 
-    _tempfile = None
-    _tempfile_path = f'{tempfile.gettempdir()}/medusa_backup_in_progress'
+    def __init__(self, max_backup_marker_age):
+        self._max_backup_marker_age = float(max_backup_marker_age)
+        self._tempfile = None
+        self._tempfile_path = f'{tempfile.gettempdir()}/medusa_backup_in_progress'
+
+    def _is_stale(self):
+        logging.debug(f'max_backup_marker_age: {self._max_backup_marker_age}')
+        try:
+            path = pathlib.Path(self._tempfile_path)
+            file_time = datetime.fromtimestamp(path.stat().st_mtime, timezone.utc)
+            logging.debug(f'marker file creation time: {file_time}')
+            return datetime.now(timezone.utc) - file_time > timedelta(hours=self._max_backup_marker_age)
+        except Exception as e:
+            logging.debug('exception checking for stale marker file: {}'.format(str(e)))
+            return False
 
     def create(self):
         try:
@@ -33,22 +47,26 @@ class MedusaTempFile(object):
 
     def delete(self):
         try:
-            if self._tempfile is not None:
+            if self.exists():
                 self._tempfile.close()
                 pathlib.Path(self._tempfile_path).unlink()
         except Exception:
             pass
 
     def exists(self):
-        if self._tempfile is not None:
-            try:
-                return pathlib.Path(self._tempfile_path).exists()
-            except Exception:
-                logging.warning(
-                    f'Could not check for running backup marker {self._tempfile_path}. Assuming a backup is not running'
-                )
+        try:
+            path = pathlib.Path(self._tempfile_path)
+            if not path.exists():
                 return False
-        else:
+            if self._is_stale():
+                logging.warning('Deleting and ignoring stale backup marker')
+                self.delete()
+                return False
+            return True
+        except Exception:
+            logging.warning(
+                f'Could not check for running backup marker {self._tempfile_path}. Assuming a backup is not running'
+            )
             return False
 
     def get_path(self):
