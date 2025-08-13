@@ -83,7 +83,8 @@ class AzureStorage(AbstractStorage):
         self.azure_blob_service = BlobServiceClient(
             account_url=self.azure_blob_service_url,
             credential=self.credentials,
-            max_block_size=20 * 1024 * 1024,        # 50k 20 MB chunks gives ~1 TB max file size
+            max_block_size=16 * 1024 * 1024,        # 50k 16 MB chunks gives 780GB max file size
+            max_single_put_size=16 * 1024 * 1024     # 16 MB
         )
         self.azure_container_client = self.azure_blob_service.get_container_client(self.bucket_name)
 
@@ -211,6 +212,7 @@ class AzureStorage(AbstractStorage):
                 data=data,
                 overwrite=True,
                 max_concurrency=16,
+                connection_timeout=600,
                 standard_blob_tier=StandardBlobTier(storage_class.capitalize()) if storage_class else None,
             )
         blob_properties = await blob_client.get_blob_properties()
