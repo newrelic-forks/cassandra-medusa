@@ -206,13 +206,12 @@ class AzureStorage(AbstractStorage):
             )
         )
         storage_class = self.get_storage_class()
-        async with aiofiles.open(src, "rb") as data:
+        with open(src, "rb") as data:
             blob_client = await self.azure_container_client.upload_blob(
                 name=object_key,
                 data=data,
                 overwrite=True,
-                max_concurrency=1,
-                connection_timeout=600,
+                max_concurrency=int(self.config.concurrent_transfers),
                 standard_blob_tier=StandardBlobTier(storage_class.capitalize()) if storage_class else None,
             )
         blob_properties = await blob_client.get_blob_properties()
