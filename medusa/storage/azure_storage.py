@@ -211,7 +211,7 @@ class AzureStorage(AbstractStorage):
                 name=object_key,
                 data=data,
                 overwrite=True,
-                max_concurrency=16,
+                max_concurrency=1,
                 connection_timeout=600,
                 standard_blob_tier=StandardBlobTier(storage_class.capitalize()) if storage_class else None,
             )
