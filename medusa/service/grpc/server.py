@@ -31,6 +31,7 @@ from grpc_health.v1 import health_pb2_grpc
 
 from medusa import backup_node
 from medusa import purge
+from medusa import purge_decommissioned
 from medusa.backup_manager import BackupMan
 from medusa.config import load_config
 from medusa.listing import get_backups
@@ -305,6 +306,24 @@ class MedusaService(medusa_pb2_grpc.MedusaServicer):
             context.set_details("purging backups failed: {}".format(e))
             context.set_code(grpc.StatusCode.INTERNAL)
             logging.exception("Purging backups failed")
+        return response
+
+    def PurgeDecommissioned(self, request, context):
+        logging.info("Purging backups for decommissioned nodes")
+        response = medusa_pb2.PurgeDecommissionedResponse()
+
+        try:
+            (decommissioned_nodes, nb_objects_purged, total_purged_size, total_objects_within_grace, nb_backups_purged) = purge_decommissioned.main(self.config)
+            response.decommissionedNodes = decommissioned_nodes
+            response.nbObjectsPurged = nb_objects_purged
+            response.totalPurgedSize = total_purged_size
+            response.totalObjectsWithinGcGrace = total_objects_within_grace
+            response.nbBackupsPurged = nb_backups_purged
+
+        except Exception as e:
+            context.set_details("purging backups for decommissioned nodes failed: {}".format(e))
+            context.set_code(grpc.StatusCode.INTERNAL)
+            logging.exception("Purging backups for decommissioned nodes failed")
         return response
 
     def PrepareRestore(self, request, context):

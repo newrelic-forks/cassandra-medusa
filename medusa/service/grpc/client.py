@@ -121,3 +121,13 @@ class Client:
         except grpc.RpcError as e:
             logging.error("Failed to purge backups due to error: {}".format(e))
             return None
+
+    async def purge_decommissioned(self):
+        try:
+            stub = medusa_pb2_grpc.MedusaStub(self.channel)
+            request = medusa_pb2.PurgeDecommissionedRequest()
+            resp = await stub.PurgeDecommissioned(request)
+            return resp
+        except grpc.RpcError as e:
+            logging.error("Failed to purge backups for decommissioned nodes due to error: {}".format(e))
+            return None
