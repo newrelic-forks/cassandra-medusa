@@ -69,6 +69,11 @@ class MedusaStub(object):
                 request_serializer=medusa__pb2.PurgeBackupsRequest.SerializeToString,
                 response_deserializer=medusa__pb2.PurgeBackupsResponse.FromString,
                 _registered_method=True)
+        self.PurgeDecommissioned = channel.unary_unary(
+                '/Medusa/PurgeDecommissioned',
+                request_serializer=medusa__pb2.PurgeDecommissionedRequest.SerializeToString,
+                response_deserializer=medusa__pb2.PurgeDecommissionedResponse.FromString,
+                _registered_method=True)
         self.PrepareRestore = channel.unary_unary(
                 '/Medusa/PrepareRestore',
                 request_serializer=medusa__pb2.PrepareRestoreRequest.SerializeToString,
@@ -121,6 +126,12 @@ class MedusaServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def PurgeDecommissioned(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def PrepareRestore(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -164,6 +175,11 @@ def add_MedusaServicer_to_server(servicer, server):
                     servicer.PurgeBackups,
                     request_deserializer=medusa__pb2.PurgeBackupsRequest.FromString,
                     response_serializer=medusa__pb2.PurgeBackupsResponse.SerializeToString,
+            ),
+            'PurgeDecommissioned': grpc.unary_unary_rpc_method_handler(
+                    servicer.PurgeDecommissioned,
+                    request_deserializer=medusa__pb2.PurgeDecommissionedRequest.FromString,
+                    response_serializer=medusa__pb2.PurgeDecommissionedResponse.SerializeToString,
             ),
             'PrepareRestore': grpc.unary_unary_rpc_method_handler(
                     servicer.PrepareRestore,
@@ -360,6 +376,33 @@ class Medusa(object):
             '/Medusa/PurgeBackups',
             medusa__pb2.PurgeBackupsRequest.SerializeToString,
             medusa__pb2.PurgeBackupsResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def PurgeDecommissioned(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/Medusa/PurgeDecommissioned',
+            medusa__pb2.PurgeDecommissionedRequest.SerializeToString,
+            medusa__pb2.PurgeDecommissionedResponse.FromString,
             options,
             channel_credentials,
             insecure,
