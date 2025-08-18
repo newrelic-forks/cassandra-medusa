@@ -22,7 +22,6 @@ import logging
 import os
 import pathlib
 import typing as t
-import aiofiles
 
 from azure.core.credentials import AzureNamedKeyCredential
 from azure.identity import DefaultAzureCredential
