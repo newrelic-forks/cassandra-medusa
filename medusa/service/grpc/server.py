@@ -319,7 +319,8 @@ class MedusaService(medusa_pb2_grpc.MedusaServicer):
         response = medusa_pb2.PurgeDecommissionedResponse()
 
         try:
-            (decommissioned_nodes, nb_objects_purged, total_purged_size, total_objects_within_grace, nb_backups_purged) = purge_decommissioned.main(self.config)
+            (decommissioned_nodes, nb_objects_purged, total_purged_size,
+             total_objects_within_grace, nb_backups_purged) = purge_decommissioned.main(self.config)
             response.decommissionedNodes.extend(decommissioned_nodes)
             response.nbObjectsPurged = nb_objects_purged
             response.totalPurgedSize = total_purged_size
