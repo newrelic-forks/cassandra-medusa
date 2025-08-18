@@ -13,6 +13,11 @@ def main(config):
     try:
         logging.info('Starting decommissioned purge')
         with Storage(config=config.storage) as storage:
+            total_backups_purged = 0
+            total_objects_purged = 0
+            total_purged_size = 0
+            total_objects_within_grace = 0
+
             # Get all nodes having backups
             blobs = storage.list_root_blobs()
             all_nodes = get_all_nodes(blobs)
@@ -26,15 +31,18 @@ def main(config):
             for node in decommissioned_nodes:
                 logging.info('Decommissioned node backups to purge: {}'.format(node))
                 backups = set(storage.list_node_backups(fqdn=node))
-                (nb_objects_purged, total_purged_size, total_objects_within_grace) \
+                (objects_purged, purged_size, objects_within_grace) \
                     = purge_backups(storage, backups, config.storage.backup_grace_period_in_days, node)
+                total_backups_purged += len(backups)
+                total_objects_purged += objects_purged
+                total_purged_size += purged_size
+                total_objects_within_grace += objects_within_grace
 
             logging.debug('Emitting metrics')
             tags = ['medusa-decommissioned-node-backup', 'purge-error', 'PURGE-ERROR']
             monitoring.send(tags, 0)
 
-            object_counts = (nb_objects_purged, total_purged_size, total_objects_within_grace, len(backups))
-            return decommissioned_nodes, object_counts
+            return decommissioned_nodes, total_objects_purged, total_purged_size, total_objects_within_grace, total_backups_purged
 
     except Exception as e:
         traceback.print_exc()
