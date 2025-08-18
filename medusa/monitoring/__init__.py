@@ -34,8 +34,10 @@ class Monitoring(object):
         self._monitoring_driver = self._connect_monitoring()
 
     def _connect_monitoring(self):
-
-        if self._config.monitoring_provider == PROVIDER_NONE:
+        # Handle cases where config is None, empty dict, or missing monitoring_provider
+        if (self._config is None or isinstance(self._config, dict)
+                or not hasattr(self._config, 'monitoring_provider')
+                or getattr(self._config, 'monitoring_provider', None) == PROVIDER_NONE):
             logging.info('Monitoring provider is noop')
             return NoopMonitoring(self._config)
         elif self._config.monitoring_provider == PROVIDER_DOG_STATSD:
