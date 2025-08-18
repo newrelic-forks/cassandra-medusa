@@ -51,19 +51,27 @@ def configure_console_logging(config):
 
 def apply_mapping_env():
     # By default we consider that we're restoring in place.
-    in_place = True
+    # We are overriding the hard-coded value for in_place. We only support
+    # performing a restore into a new cluster. We will not be doing restores
+    # into an existing cluster.
+    #
+    # in_place = True
+    in_place = False
     if "RESTORE_MAPPING" in os.environ.keys():
         logging.info("Reading restore mapping from environment variable")
         mapping = json.loads(os.environ["RESTORE_MAPPING"])
         # Mapping json structure will look like:
-        # {'in_place': true,
+        # {'in_place': false,
         #  'host_map':
         #       {'test-dc1-sts-0': {'source': ['172.24.0.3'], 'seed': False},
         #        'test-dc1-sts-1': {'source': ['172.24.0.4'], 'seed': False},
         #        'test-dc1-sts-2': {'source': ['172.24.0.6'], 'seed': False}}}
         # As each mapping is specific to a Cassandra node, we're looking for
         # the node that maps to the value of the POD_NAME var.
-        in_place = mapping["in_place"]
+
+        # in_place should always be False. We only support performing a restore
+        # into a new cluster. We will not be doing restores into an existing cluster.
+        # in_place = mapping["in_place"]
         if not in_place:
             print(f"Mapping: {mapping}")
             # While POD_IP isn't a great name, it's the env variable that is used to enforce the fqdn of the node.
@@ -81,7 +89,11 @@ def restore_backup(in_place, config):
     backup_name = os.environ["BACKUP_NAME"]
     tmp_dir = Path("/tmp") if "MEDUSA_TMP_DIR" not in os.environ else Path(os.environ["MEDUSA_TMP_DIR"])
     print(f"Downloading backup {backup_name} to {tmp_dir}")
-    keep_auth = False if in_place else True
+
+    # Always restore system_auth to the new cluster:
+    # keep_auth = False if in_place else True
+    keep_auth = False
+
     seeds = None
     verify = False
     keyspaces = {}
