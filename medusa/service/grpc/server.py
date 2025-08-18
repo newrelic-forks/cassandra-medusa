@@ -72,8 +72,12 @@ class Server:
         health_pb2_grpc.add_HealthServicer_to_server(grpc_health.v1.health.HealthServicer(), self.grpc_server)
 
         grpc_port = int(self.medusa_config.grpc.port)
+        grpc_address = f"[::]:{grpc_port}"
+        grpc_bind_local = os.getenv("MEDUSA_BIND_LOCAL", False)
+        if grpc_bind_local:
+            grpc_address = f"127.0.0.1:{grpc_port}"
         logging.info(f"Starting server. Listening on port {grpc_port}.")
-        self.grpc_server.add_insecure_port(f"[::]:{grpc_port}")
+        self.grpc_server.add_insecure_port(grpc_address)
         await self.grpc_server.start()
 
         if not self.testing:
@@ -259,7 +263,7 @@ class MedusaService(medusa_pb2_grpc.MedusaServicer):
         except Exception as e:
             context.set_details("Failed to get backups due to error: {}".format(e))
             context.set_code(grpc.StatusCode.INTERNAL)
-            response.status = medusa_pb2.StatusType.UNKNOWN
+            response.overallStatus = medusa_pb2.StatusType.UNKNOWN
         return response
 
     def DeleteBackup(self, request, context):
@@ -464,4 +468,4 @@ async def main():
 
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    asyncio.run(main(), debug=True)
