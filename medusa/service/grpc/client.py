@@ -130,4 +130,13 @@ class Client:
             return resp
         except grpc.RpcError as e:
             logging.error("Failed to purge backups for decommissioned nodes due to error: {}".format(e))
+
+    async def report_latest(self, push_metrics=False):
+        try:
+            stub = medusa_pb2_grpc.MedusaStub(self.channel)
+            request = medusa_pb2.ReportLatestRequest(pushMetrics=push_metrics)
+            resp = await stub.ReportLatest(request)
+            return resp
+        except grpc.RpcError as e:
+            logging.error("Failed to get latest backup report due to error: {}".format(e))
             return None

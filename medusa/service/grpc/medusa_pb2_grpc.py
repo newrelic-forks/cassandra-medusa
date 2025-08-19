@@ -18,7 +18,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + f' but the generated code in medusa_pb2_grpc.py depends on'
+        + f' but the generated code in medusa/service/grpc/medusa_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -79,6 +79,11 @@ class MedusaStub(object):
                 request_serializer=medusa__pb2.PrepareRestoreRequest.SerializeToString,
                 response_deserializer=medusa__pb2.PrepareRestoreResponse.FromString,
                 _registered_method=True)
+        self.ReportLatest = channel.unary_unary(
+                '/Medusa/ReportLatest',
+                request_serializer=medusa__pb2.ReportLatestRequest.SerializeToString,
+                response_deserializer=medusa__pb2.ReportLatestResponse.FromString,
+                _registered_method=True)
 
 
 class MedusaServicer(object):
@@ -138,6 +143,12 @@ class MedusaServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def ReportLatest(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_MedusaServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -185,6 +196,11 @@ def add_MedusaServicer_to_server(servicer, server):
                     servicer.PrepareRestore,
                     request_deserializer=medusa__pb2.PrepareRestoreRequest.FromString,
                     response_serializer=medusa__pb2.PrepareRestoreResponse.SerializeToString,
+            ),
+            'ReportLatest': grpc.unary_unary_rpc_method_handler(
+                    servicer.ReportLatest,
+                    request_deserializer=medusa__pb2.ReportLatestRequest.FromString,
+                    response_serializer=medusa__pb2.ReportLatestResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -430,6 +446,33 @@ class Medusa(object):
             '/Medusa/PrepareRestore',
             medusa__pb2.PrepareRestoreRequest.SerializeToString,
             medusa__pb2.PrepareRestoreResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ReportLatest(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/Medusa/ReportLatest',
+            medusa__pb2.ReportLatestRequest.SerializeToString,
+            medusa__pb2.ReportLatestResponse.FromString,
             options,
             channel_credentials,
             insecure,
