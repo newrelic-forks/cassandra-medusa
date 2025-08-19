@@ -35,7 +35,6 @@ from medusa import purge_decommissioned
 from medusa.backup_manager import BackupMan
 from medusa.config import load_config
 from medusa.listing import get_backups
-from medusa.monitoring import Monitoring
 from medusa.purge import delete_backup
 from medusa.restore_cluster import RestoreJob
 from medusa.service.grpc import medusa_pb2
@@ -122,7 +121,6 @@ class MedusaService(medusa_pb2_grpc.MedusaServicer):
         logging.info("Init service")
         self.config = config
         self.storage_config = config.storage
-        self.monitoring = Monitoring(config=config.monitoring)
 
     async def AsyncBackup(self, request, context):
         # TODO pass the staggered arg
@@ -143,7 +141,7 @@ class MedusaService(medusa_pb2_grpc.MedusaServicer):
                 backup_node.handle_backup,
                 self.config, request.name, None, False, mode
             )
-            backup_future.add_done_callback(lambda f: record_backup_info(f, self.monitoring))
+            backup_future.add_done_callback(record_backup_info)
             BackupMan.set_backup_future(request.name, backup_future)
 
         except Exception as e:
@@ -499,18 +497,12 @@ def get_backup_summary(backup):
 
 
 # Callback function for recording unique backup results
-def record_backup_info(future, monitoring):
+def record_backup_info(future):
     try:
         logging.info("Recording async backup information.")
         if future.exception():
             logging.error("Failed to record backup information executed in "
                           "async manner. Error: {}".format(future.exception()))
-            # Send error metric for async backup failure
-            try:
-                tags = ['medusa-cluster-backup', 'cluster-backup-error', 'async-backup-error']
-                monitoring.send(tags, 1)
-            except Exception as me:
-                logging.error("Failed to send error metric: {}".format(me))
             return
 
         result = future.result()
@@ -523,31 +515,6 @@ def record_backup_info(future, monitoring):
 
         logging.info("Setting result in callback for backup Name: {}".format(backup_name))
         BackupMan.set_backup_result(backup_name, result)
-
-        # Emit metrics for async backup with wall clock timing
-        try:
-            logging.debug('Emitting async backup metrics')
-            logging.info('Async backup duration: {}'.format(actual_backup_duration.total_seconds()))
-
-            # Duration metric for real wall clock backup time
-            tags = ['medusa-cluster-backup', 'cluster-backup-duration', backup_name]
-            monitoring.send(tags, actual_backup_duration.total_seconds())
-
-            # Success metric
-            tags = ['medusa-cluster-backup', 'cluster-backup-error', backup_name]
-            monitoring.send(tags, 0)
-
-            # Size metrics
-            tags = ['medusa-cluster-backup', 'backup-size', backup_name]
-            monitoring.send(tags, node_backup.size())
-
-            # File count metrics
-            tags = ['medusa-cluster-backup', 'backup-file-count', backup_name]
-            monitoring.send(tags, num_files)
-
-            logging.debug('Done emitting async backup metrics')
-        except Exception as me:
-            logging.error("Failed to send backup metrics: {}".format(me))
 
     except Exception as e:
         logging.error("Failed to record backup information executed in async manner. Error: {}".format(e))
