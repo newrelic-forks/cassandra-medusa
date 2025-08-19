@@ -21,6 +21,7 @@ import requests
 import medusa.utils
 from medusa.monitoring.abstract import AbstractMonitoring
 
+
 class NewRelicMonitoring(AbstractMonitoring):
 
     def __init__(self, config):
