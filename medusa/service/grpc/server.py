@@ -40,6 +40,7 @@ from medusa.purge import delete_backup
 from medusa.restore_cluster import RestoreJob
 from medusa.service.grpc import medusa_pb2
 from medusa.service.grpc import medusa_pb2_grpc
+import medusa.report_latest
 from medusa.storage import Storage
 
 TIMESTAMP_FORMAT = '%Y-%m-%d %H:%M:%S'
@@ -355,6 +356,99 @@ class MedusaService(medusa_pb2_grpc.MedusaServicer):
             context.set_details("Failed to prepare restore: {}".format(e))
             context.set_code(grpc.StatusCode.INTERNAL)
             logging.exception("Failed restore prep {} for backup {}".format(request.restoreKey, request.backupName))
+        return response
+
+    def ReportLatest(self, request, context):
+        logging.info("Generating latest backup report")
+        response = medusa_pb2.ReportLatestResponse()
+
+        try:
+            with Storage(config=self.storage_config) as storage:
+                # Get node backup info
+                fqdn = self.storage_config.fqdn
+                latest_node_backup = storage.latest_node_backup(fqdn=fqdn)
+
+                response.nodeBackup.exists = latest_node_backup is not None
+                if latest_node_backup:
+                    response.nodeBackup.backupName = latest_node_backup.name
+                    now = int(datetime.now().timestamp())
+                    if latest_node_backup.finished:
+                        response.nodeBackup.finishedSecondsAgo = int(now - latest_node_backup.finished)
+                    else:
+                        response.nodeBackup.finishedSecondsAgo = 0
+
+                # Get latest complete cluster backup
+                backup_index = storage.list_backup_index_blobs()
+                latest_complete_cluster_backup = storage.latest_complete_cluster_backup(
+                    backup_index=backup_index)
+
+                response.latestCompleteClusterBackup.exists = latest_complete_cluster_backup is not None
+                if latest_complete_cluster_backup:
+                    response.latestCompleteClusterBackup.backupName = latest_complete_cluster_backup.name
+                    now = int(datetime.now().timestamp())
+                    finished_time = latest_complete_cluster_backup.finished
+                    response.latestCompleteClusterBackup.finishedSecondsAgo = int(now - finished_time)
+                    response.latestCompleteClusterBackup.isComplete = True
+
+                # Get latest cluster backup (complete or not)
+                latest_cluster_backup = storage.latest_cluster_backup(backup_index=backup_index)
+
+                response.latestClusterBackup.exists = latest_cluster_backup is not None
+                if latest_cluster_backup:
+                    response.latestClusterBackup.backupName = latest_cluster_backup.name
+                    response.latestClusterBackup.isComplete = latest_cluster_backup.is_complete()
+
+                    # Set finishedSecondsAgo if backup is finished
+                    if latest_cluster_backup.finished:
+                        now = int(datetime.now().timestamp())
+                        finished_time = latest_cluster_backup.finished
+                        response.latestClusterBackup.finishedSecondsAgo = int(now - finished_time)
+                    else:
+                        response.latestClusterBackup.finishedSecondsAgo = 0
+
+                    # Node counts
+                    complete_nodes = latest_cluster_backup.complete_nodes()
+                    incomplete_nodes = latest_cluster_backup.incomplete_nodes()
+                    missing_nodes = latest_cluster_backup.missing_nodes()
+
+                    response.latestClusterBackup.completeNodesCount = len(complete_nodes)
+                    response.latestClusterBackup.incompleteNodesCount = len(incomplete_nodes)
+                    response.latestClusterBackup.missingNodesCount = len(missing_nodes)
+
+                    # Add node lists
+                    incomplete_fqdns = [node.fqdn for node in incomplete_nodes]
+                    response.latestClusterBackup.incompleteNodes.extend(incomplete_fqdns)
+                    response.latestClusterBackup.missingNodes.extend(missing_nodes)
+
+                    # Size and file count
+                    response.latestClusterBackup.totalSize = latest_cluster_backup.size()
+                    response.latestClusterBackup.numberOfFiles = latest_cluster_backup.num_objects()
+                # Send metrics if requested
+                if request.pushMetrics:
+                    from medusa.monitoring import Monitoring
+                    monitoring = Monitoring(config=self.config.monitoring)
+                    check_args = (self.config, storage, fqdn, True, monitoring)
+                    medusa.report_latest.check_node_backup(*check_args)
+                    cluster_args = (storage, True, monitoring, backup_index)
+                    medusa.report_latest.check_complete_cluster_backup(*cluster_args)
+                    medusa.report_latest.check_latest_cluster_backup(*cluster_args)
+
+                # Set overall status
+                if latest_complete_cluster_backup:
+                    response.overallStatus = medusa_pb2.StatusType.SUCCESS
+                elif latest_cluster_backup and latest_cluster_backup.is_complete():
+                    response.overallStatus = medusa_pb2.StatusType.SUCCESS
+                elif latest_cluster_backup:
+                    response.overallStatus = medusa_pb2.StatusType.IN_PROGRESS
+                else:
+                    response.overallStatus = medusa_pb2.StatusType.UNKNOWN
+
+        except Exception as e:
+            context.set_details("Failed to generate report: {}".format(e))
+            context.set_code(grpc.StatusCode.INTERNAL)
+            logging.exception("Failed to generate latest backup report")
+            response.overallStatus = medusa_pb2.StatusType.UNKNOWN
+
         return response
 
 
